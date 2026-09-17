@@ -1,0 +1,2 @@
+../Core/Src/yaw_fusion.c:151:6:CalculateYaw	3
+../Core/Src/yaw_fusion.c:227:6:UpdateYaw	7

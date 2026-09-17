@@ -1,0 +1,7 @@
+../Core/Src/icm20948.c:87:6:ICM_SelectBank	1
+../Core/Src/icm20948.c:108:6:ICM_WriteReg	1
+../Core/Src/icm20948.c:130:9:ICM_ReadReg	1
+../Core/Src/icm20948.c:165:6:ICM_ReadRegs	3
+../Core/Src/icm20948.c:205:6:ICM_CalibrateGyro	3
+../Core/Src/icm20948.c:278:9:ICM_Init	2
+../Core/Src/icm20948.c:354:6:ICM_Read9Axis	2

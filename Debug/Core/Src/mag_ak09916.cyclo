@@ -1,0 +1,5 @@
+../Core/Src/mag_ak09916.c:97:6:Mag_SetCalibrated	1
+../Core/Src/mag_ak09916.c:136:6:AK09916_WriteReg	1
+../Core/Src/mag_ak09916.c:163:9:AK09916_ReadReg	1
+../Core/Src/mag_ak09916.c:212:6:AK09916_Init	1
+../Core/Src/mag_ak09916.c:291:6:ICM_CalibrateMag	13

@@ -1,0 +1,2 @@
+../Core/Src/yaw_fusion.c:151:6:CalculateYaw	56	static
+../Core/Src/yaw_fusion.c:227:6:UpdateYaw	24	static
