@@ -1,29 +1,35 @@
-/* led_direction.c */
+/* =============================================================================
+ *
+ * PHÂN VÙNG GÓC:
+ *   ┌───────┬──────────────────────────┐
+ *   │ BẮC   │ [315°, 360°) ∪ [0°, 45°) │
+ *   │ ĐÔNG  │ [45°, 135°)              │
+ *   │ NAM   │ [135°, 225°)             │
+ *   │ TÂY   │ [225°, 315°)             │
+ *   └───────┴──────────────────────────┘
+ * =============================================================================
+ */
+
 #include "led_direction.h"
 #include "yaw_fusion.h"
 
 void LED_Update_Direction(void)
 {
-    /* Tắt tất cả LED */
-    HAL_GPIO_WritePin(BAC_GPIO_Port,  BAC_Pin,  GPIO_PIN_RESET);   /* Bắc */
-    HAL_GPIO_WritePin(TAY_GPIO_Port,  TAY_Pin,  GPIO_PIN_RESET);   /* Đông */
-    HAL_GPIO_WritePin(DONG_GPIO_Port, DONG_Pin, GPIO_PIN_SET);     /* Nam  (active LOW) */
-    HAL_GPIO_WritePin(NAM_GPIO_Port,  NAM_Pin,  GPIO_PIN_RESET);   /* Tây */
+    LED_BAC_OFF();
+    LED_DONG_OFF();
+    LED_NAM_OFF();
+    LED_TAY_OFF();
 
     if (yaw >= 315.0f || yaw < 45.0f) {
-        /* BẮC — PB11 */
-        HAL_GPIO_WritePin(BAC_GPIO_Port, BAC_Pin, GPIO_PIN_SET);
+        LED_BAC_ON();
     }
     else if (yaw >= 45.0f && yaw < 135.0f) {
-        /* ĐÔNG — PA5 */
-        HAL_GPIO_WritePin(TAY_GPIO_Port, TAY_Pin, GPIO_PIN_SET);
+        LED_DONG_ON();
     }
     else if (yaw >= 135.0f && yaw < 225.0f) {
-        /* NAM — PC13 (active LOW) */
-        HAL_GPIO_WritePin(DONG_GPIO_Port, DONG_Pin, GPIO_PIN_RESET);
+        LED_NAM_ON();
     }
     else {
-        /* TÂY — PB8 */
-        HAL_GPIO_WritePin(NAM_GPIO_Port, NAM_Pin, GPIO_PIN_SET);
+        LED_TAY_ON();
     }
 }

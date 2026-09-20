@@ -102,9 +102,8 @@ int main(void)
 
   /* ===== KHỞI TẠO ICM-20948 ===== */
   if (ICM_Init() != 0xEA) {
-    /* WHO_AM_I sai → nháy LED PC13 báo lỗi */
     while (1) {
-      HAL_GPIO_TogglePin(DONG_GPIO_Port, DONG_Pin);
+      HAL_GPIO_TogglePin(NAM_GPIO_Port, NAM_Pin);
       HAL_Delay(100);
     }
   }
@@ -133,7 +132,7 @@ int main(void)
 
     if (elapsed >= 20) {
       float dt = elapsed / 1000.0f;
-      if (dt > 0.05f) dt = 0.05f;   /* Clamp khi debug */
+      if (dt > 0.05f) dt = 0.05f;
       last_tick = now;
 
       ICM_Read9Axis();
@@ -143,9 +142,8 @@ int main(void)
       LED_Update_Direction();
     }
 
-    /* USER CODE END 3 */
-  }
   /* USER CODE END 3 */
+  }
 }
 
 /**
@@ -157,27 +155,28 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /* ===== HSI + PLL x16 = 64 MHz ===== */
-  RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState            = RCC_HSI_ON;
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState        = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource       = RCC_PLLSOURCE_HSI_DIV2;
-  RCC_OscInitStruct.PLL.PLLMUL          = RCC_PLL_MUL16;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
   }
 
-  /* ===== Bus clocks ===== */
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;   /* PCLK1 = 32MHz */
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
     Error_Handler();
   }
@@ -248,58 +247,51 @@ static void MX_DMA_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
 
-  /* USER CODE END MX_GPIO_Init_1 */
-
-  /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(BAC_GPIO_Port,  BAC_Pin,  GPIO_PIN_RESET);
   HAL_GPIO_WritePin(DONG_GPIO_Port, DONG_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(NAM_GPIO_Port,  NAM_Pin,  GPIO_PIN_SET);
+  HAL_GPIO_WritePin(TAY_GPIO_Port,  TAY_Pin,  GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(ICM_CS_GPIO_Port, ICM_CS_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, TAY_Pin|ICM_CS_Pin, GPIO_PIN_RESET);
+  /* --- Cấu hình LED BẮC (PB11, output PP) --- */
+  GPIO_InitStruct.Pin = BAC_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(BAC_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(BAC_GPIO_Port, BAC_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(NAM_GPIO_Port, NAM_Pin, GPIO_PIN_SET);
-
-  /*Configure GPIO pin : DONG_Pin */
+  /* --- Cấu hình LED ĐÔNG (PA5, output PP) --- */
   GPIO_InitStruct.Pin = DONG_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DONG_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : TAY_Pin */
+  /* --- Cấu hình LED NAM (PC13, output PP) --- */
+  GPIO_InitStruct.Pin = NAM_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(NAM_GPIO_Port, &GPIO_InitStruct);
+
+  /* --- Cấu hình LED TÂY (PB8, output PP) --- */
   GPIO_InitStruct.Pin = TAY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(TAY_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : BAC_Pin NAM_Pin */
-  GPIO_InitStruct.Pin = BAC_Pin|NAM_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : ICM_CS_Pin */
+  /* --- Cấu hình chân CS cho ICM-20948 (PA8, output PP, pull-up) --- */
   GPIO_InitStruct.Pin = ICM_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(ICM_CS_GPIO_Port, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
-
-  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */

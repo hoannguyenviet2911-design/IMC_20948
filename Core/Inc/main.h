@@ -77,16 +77,16 @@ void SystemClock_Config(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define DONG_Pin GPIO_PIN_13
-#define DONG_GPIO_Port GPIOC
-#define TAY_Pin GPIO_PIN_5
-#define TAY_GPIO_Port GPIOA
+#define NAM_Pin GPIO_PIN_13
+#define NAM_GPIO_Port GPIOC
+#define DONG_Pin GPIO_PIN_5
+#define DONG_GPIO_Port GPIOA
 #define BAC_Pin GPIO_PIN_11
 #define BAC_GPIO_Port GPIOB
 #define ICM_CS_Pin GPIO_PIN_8
 #define ICM_CS_GPIO_Port GPIOA
-#define NAM_Pin GPIO_PIN_8
-#define NAM_GPIO_Port GPIOB
+#define TAY_Pin GPIO_PIN_8
+#define TAY_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
