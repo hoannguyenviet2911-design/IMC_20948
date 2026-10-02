@@ -2,8 +2,10 @@
  * icm20948.c
  * Driver mokhwasomssi — port sang SPI2 + CS = PA8
  * Đã sửa: cs_high/cs_low (HAL), bug accel_low_pass_filter
+ * Đã refactor: SLV0 tự đọc liên tục 8 byte từ AK09916 → không còn race
  */
 #include "icm20948.h"
+#include <stdio.h>
 
 static float gyro_scale_factor;
 static float accel_scale_factor;
@@ -18,9 +20,7 @@ static void     write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val)
 static uint8_t* read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len);
 static void     write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t* val, uint8_t len);
 
-static uint8_t  read_single_ak09916_reg(uint8_t reg);
 static void     write_single_ak09916_reg(uint8_t reg, uint8_t val);
-static uint8_t* read_multiple_ak09916_reg(uint8_t reg, uint8_t len);
 
 /* ================== MAIN FUNCTIONS ================== */
 void icm20948_init()
@@ -48,6 +48,17 @@ void icm20948_init()
     icm20948_accel_full_scale_select(_4g);      /* đổi từ _16g */
 }
 
+void ak09916_start_continuous_read(void)
+{
+    /* ODR của I2C master ~1.1 kHz */
+    write_single_icm20948_reg(ub_3, B3_I2C_MST_ODR_CONFIG, 0x03);
+
+    /* SLV0 tự đọc liên tục 8 byte từ HXL: HXL HXH HYL HYH HZL HZH TMPS ST2 */
+    write_single_icm20948_reg(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
+    write_single_icm20948_reg(ub_3, B3_I2C_SLV0_REG,  MAG_HXL);
+    write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x80 | 8);
+}
+
 void ak09916_init()
 {
     icm20948_i2c_master_reset();
@@ -58,6 +69,8 @@ void ak09916_init()
 
     ak09916_soft_reset();
     ak09916_operation_mode_setting(continuous_measurement_100hz);
+
+    ak09916_start_continuous_read();
 }
 
 void icm20948_gyro_read(axises* data)
@@ -78,21 +91,16 @@ void icm20948_accel_read(axises* data)
 
 bool ak09916_mag_read(axises* data)
 {
-    uint8_t* temp;
-    uint8_t drdy, hofl;
+    uint8_t* temp = read_multiple_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_00, 8);
+    /* temp[0..5] = HXL HXH HYL HYH HZL HZH
+       temp[6]    = TMPS
+       temp[7]    = ST2 (bit3 = HOFL) */
 
-    drdy = read_single_ak09916_reg(MAG_ST1) & 0x01;
-    if(!drdy) return false;
-
-    temp = read_multiple_ak09916_reg(MAG_HXL, 6);
-
-    hofl = read_single_ak09916_reg(MAG_ST2) & 0x08;
-    if(hofl) return false;
+    if (temp[7] & 0x08) return false;   /* overflow */
 
     data->x = (int16_t)(temp[1] << 8 | temp[0]);
     data->y = (int16_t)(temp[3] << 8 | temp[2]);
     data->z = (int16_t)(temp[5] << 8 | temp[4]);
-
     return true;
 }
 
@@ -133,7 +141,13 @@ bool icm20948_who_am_i()
 
 bool ak09916_who_am_i()
 {
-    uint8_t ak09916_id = read_single_ak09916_reg(MAG_WIA2);
+    uint8_t ak09916_id;
+    /* đọc WIA2 thông qua SLV0 tạm thời */
+    write_single_icm20948_reg(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
+    write_single_icm20948_reg(ub_3, B3_I2C_SLV0_REG,  MAG_WIA2);
+    write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x81);
+    HAL_Delay(3);
+    ak09916_id = read_single_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_00);
     return (ak09916_id == AK09916_ID);
 }
 
@@ -423,28 +437,11 @@ static void write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t* val, 
     cs_high();
 }
 
-static uint8_t read_single_ak09916_reg(uint8_t reg)
-{
-    write_single_icm20948_reg(ub_3, B3_I2C_SLV0_ADDR, READ  | MAG_SLAVE_ADDR);
-    write_single_icm20948_reg(ub_3, B3_I2C_SLV0_REG,  reg);
-    write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x81);
-    HAL_Delay(1);
-    return read_single_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_00);
-}
-
 static void write_single_ak09916_reg(uint8_t reg, uint8_t val)
 {
     write_single_icm20948_reg(ub_3, B3_I2C_SLV0_ADDR, WRITE | MAG_SLAVE_ADDR);
     write_single_icm20948_reg(ub_3, B3_I2C_SLV0_REG,  reg);
     write_single_icm20948_reg(ub_3, B3_I2C_SLV0_DO,   val);
     write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x81);
-}
-
-static uint8_t* read_multiple_ak09916_reg(uint8_t reg, uint8_t len)
-{
-    write_single_icm20948_reg(ub_3, B3_I2C_SLV0_ADDR, READ | MAG_SLAVE_ADDR);
-    write_single_icm20948_reg(ub_3, B3_I2C_SLV0_REG,  reg);
-    write_single_icm20948_reg(ub_3, B3_I2C_SLV0_CTRL, 0x80 | len);
-    HAL_Delay(1);
-    return read_multiple_icm20948_reg(ub_0, B0_EXT_SLV_SENS_DATA_00, len);
+    HAL_Delay(2);
 }

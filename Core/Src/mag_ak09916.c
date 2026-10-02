@@ -34,10 +34,11 @@ void ICM_CalibrateMag(void)
         axises m;
         if (ak09916_mag_read_uT(&m))
         {
-            /* Hoán vị trục — chỉnh sau khi test thực tế */
-            float ux =  (float)m.y;
-            float uy =  (float)m.x;
-            float uz = -(float)m.z;
+            /* PHẢI GIỐNG HỆT main loop: AK09916 → ICM body frame
+             * Xoay -90° quanh Z: (x,y) → (-y, x). */
+            float ux = -(float)m.y;
+            float uy =  -(float)m.x;
+            float uz =  -(float)m.z;
 
             if (ux < mag_min[0]) mag_min[0] = ux;
             if (ux > mag_max[0]) mag_max[0] = ux;
@@ -45,8 +46,6 @@ void ICM_CalibrateMag(void)
             if (uy > mag_max[1]) mag_max[1] = uy;
             if (uz < mag_min[2]) mag_min[2] = uz;
             if (uz > mag_max[2]) mag_max[2] = uz;
-
-            Mag_SetCalibrated(ux, uy, uz);
         }
         HAL_Delay(20);
     }

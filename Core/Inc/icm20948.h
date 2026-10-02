@@ -76,6 +76,7 @@ void icm20948_accel_low_pass_filter(uint8_t config);
 void icm20948_gyro_sample_rate_divider(uint8_t divider);
 void icm20948_accel_sample_rate_divider(uint16_t divider);
 void ak09916_operation_mode_setting(operation_mode mode);
+void ak09916_start_continuous_read(void);
 
 void icm20948_gyro_calibration();
 void icm20948_accel_calibration();

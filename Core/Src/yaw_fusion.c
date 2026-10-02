@@ -12,8 +12,8 @@ volatile float pitch = 0.0f;
 volatile float yaw   = 0.0f;
 
 volatile float yaw_compass = 0.0f;
-volatile float yaw_fused   = 0.0f;   /* giữ để debug_vars không phải sửa */
-volatile uint8_t yaw_first_run = 0;  /* giữ để debug_vars không phải sửa */
+volatile float yaw_fused   = 0.0f;
+volatile uint8_t yaw_first_run = 0;
 volatile float yaw_quat = 0.0f;
 
 void CalculateYaw(void)
@@ -37,9 +37,15 @@ void CalculateYaw(void)
 
 void UpdateYaw(float dt)
 {
-    float gx_r = gx * GYRO_DPS_TO_RAD;
-    float gy_r = gy * GYRO_DPS_TO_RAD;
-    float gz_r = gz * GYRO_DPS_TO_RAD;
+    /* Deadband nhỏ để chống trôi yaw khi đứng yên */
+    const float GYRO_DEADBAND = 0.5f;   /* dps */
+    float gxd = (fabsf(gx) < GYRO_DEADBAND) ? 0.0f : gx;
+    float gyd = (fabsf(gy) < GYRO_DEADBAND) ? 0.0f : gy;
+    float gzd = (fabsf(gz) < GYRO_DEADBAND) ? 0.0f : gz;
+
+    float gx_r = gxd * GYRO_DPS_TO_RAD;
+    float gy_r = gyd * GYRO_DPS_TO_RAD;
+    float gz_r = gzd * GYRO_DPS_TO_RAD;
 
     MadgwickAHRSupdate(gx_r, gy_r, gz_r, ax, ay, az, mx, my, mz, dt);
 

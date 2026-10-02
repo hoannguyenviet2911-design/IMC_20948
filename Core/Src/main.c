@@ -4,44 +4,15 @@
   * @file           : main.c
   * @brief          : Main program body
   ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2026 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "icm20948.h"
 #include "mag_ak09916.h"
+#include "Madgwick_filter.h"
 #include "yaw_fusion.h"
 #include <stdio.h>
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi2;
@@ -50,94 +21,57 @@ DMA_HandleTypeDef hdma_spi2_tx;
 
 UART_HandleTypeDef huart2;
 
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_USART2_UART_Init(void);
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
-  * @retval int
   */
 int main(void)
 {
-
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
   SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_SPI2_Init();
   MX_USART2_UART_Init();
-  /* USER CODE BEGIN 2 */
 
-  /* ===== TEST UART ===== */
+  /* USER CODE BEGIN 2 */
   printf("\r\n===== USART2 OK, baud=115200 =====\r\n");
   HAL_Delay(200);
 
-  /* ===== KHỞI TẠO ICM-20948 ===== */
   printf("Khoi tao ICM-20948...\r\n");
   icm20948_init();
   printf("ICM-20948 OK!\r\n");
 
-  /* ===== KHỞI TẠO AK09916 (mag bên trong ICM) ===== */
   printf("Khoi tao AK09916...\r\n");
   ak09916_init();
   printf("AK09916 OK!\r\n");
 
-  HAL_Delay(1000);   /* đợi cảm biến ổn định sau init */
+  HAL_Delay(1000);
 
-  /* ===== HIỆU CHUẨN MAG (xoay board 360° trong 20s) ===== */
+  /* ===== HIỆU CHUẨN MAG — BẮT BUỘC cho MARG ===== */
   printf("\r\n===== HIEU CHUAN MAG =====\r\n");
   printf("Xoay board 360 do (moi huong) trong 20 giay...\r\n");
   ICM_CalibrateMag();
   printf("Hieu chuan xong!\r\n");
+
+  /* Reset filter sau calib để bắt đầu sạch */
+  q0 = 1.0f; q1 = 0.0f; q2 = 0.0f; q3 = 0.0f;
+
   printf("Bat dau doc du lieu...\r\n\r\n");
 
   uint32_t last_tick = HAL_GetTick();
-
   /* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
-
     /* USER CODE BEGIN 3 */
-
     uint32_t now = HAL_GetTick();
     uint32_t elapsed = now - last_tick;
 
@@ -148,26 +82,26 @@ int main(void)
 
       axises a, g, m;
 
-      /* --- Đọc ACCEL (±4g) → g --- */
+      /* --- ACCEL: giữ nguyên frame ICM --- */
       icm20948_accel_read_g(&a);
       ax = a.x;
-      ay = a.y;
+      ay = -a.y;
       az = -a.z;
 
-      /* --- Đọc GYRO (±500 dps) → dps --- */
+      /* --- GYRO: cùng frame với accel --- */
       icm20948_gyro_read_dps(&g);
       gx = g.x;
-      gy = g.y;
-      gz = g.z;
+      gy = -g.y;
+      gz = -g.z;
 
-      /* --- Đọc MAG → µT → hoán vị trục → hiệu chuẩn --- */
+      /* --- MAG: remap AK09916 → ICM body frame, rồi hiệu chuẩn --- */
       if (ak09916_mag_read_uT(&m))
       {
-        /* Hoán vị trục — điều chỉnh sau khi test thực tế */
-        float ux =  (float)m.y;
-        float uy =  (float)m.x;
-        float uz = -(float)m.z;
-        Mag_SetCalibrated(ux, uy, uz);
+          float ux =  -(float)m.y;
+          float uy =  -(float)m.x;
+          float uz =  -(float)m.z;
+
+          Mag_SetCalibrated(ux, uy, uz);
       }
 
       UpdateYaw(dt);
@@ -179,8 +113,7 @@ int main(void)
              mx, my, mz,
              roll, pitch, yaw);
     }
-
-  /* USER CODE END 3 */
+    /* USER CODE END 3 */
   }
 }
 
