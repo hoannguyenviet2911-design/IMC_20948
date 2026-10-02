@@ -42,7 +42,7 @@ void icm20948_init()
     icm20948_accel_sample_rate_divider(0);
 
     icm20948_gyro_calibration();
-    icm20948_accel_calibration();
+//    icm20948_accel_calibration();
 
     icm20948_gyro_full_scale_select(_500dps);   /* đổi từ _2000dps */
     icm20948_accel_full_scale_select(_4g);      /* đổi từ _16g */
@@ -73,7 +73,7 @@ void icm20948_accel_read(axises* data)
     uint8_t* temp = read_multiple_icm20948_reg(ub_0, B0_ACCEL_XOUT_H, 6);
     data->x = (int16_t)(temp[0] << 8 | temp[1]);
     data->y = (int16_t)(temp[2] << 8 | temp[3]);
-    data->z = (int16_t)(temp[4] << 8 | temp[5]) + accel_scale_factor;
+    data->z = (int16_t)(temp[4] << 8 | temp[5]);
 }
 
 bool ak09916_mag_read(axises* data)
@@ -246,15 +246,15 @@ void icm20948_gyro_calibration()
     int32_t gyro_bias[3] = {0};
     uint8_t gyro_offset[6] = {0};
 
-    for(int i = 0; i < 100; i++) {
+    for(int i = 0; i < 500; i++) {
         icm20948_gyro_read(&temp);
         gyro_bias[0] += (int32_t)temp.x;
         gyro_bias[1] += (int32_t)temp.y;
         gyro_bias[2] += (int32_t)temp.z;
     }
-    gyro_bias[0] /= 100;
-    gyro_bias[1] /= 100;
-    gyro_bias[2] /= 100;
+    gyro_bias[0] /= 500;
+    gyro_bias[1] /= 500;
+    gyro_bias[2] /= 500;
 
     gyro_offset[0] = (-gyro_bias[0] / 4 >> 8) & 0xFF;
     gyro_offset[1] = (-gyro_bias[0] / 4)      & 0xFF;

@@ -21,7 +21,11 @@
 #include "icm20948.h"
 #include "mag_ak09916.h"
 #include "yaw_fusion.h"
-#include "debug_vars.h"
+#include <stdio.h>
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,6 +48,8 @@ SPI_HandleTypeDef hspi2;
 DMA_HandleTypeDef hdma_spi2_rx;
 DMA_HandleTypeDef hdma_spi2_tx;
 
+UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -53,6 +59,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_SPI2_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -93,24 +100,31 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_SPI2_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  /* ===== TEST UART ===== */
+  printf("\r\n===== USART2 OK, baud=115200 =====\r\n");
+  HAL_Delay(200);
+
   /* ===== KHỞI TẠO ICM-20948 ===== */
-  /* icm20948_init() đã bao gồm: who_am_i + reset + wakeup + clock source
-   *   + LPF + ODR + calib gyro (HW) + chọn FSR (đã sửa về 500dps/4g)
-   *   Nếu không tìm thấy chip → hàm while(!icm20948_who_am_i()) sẽ treo. */
+  printf("Khoi tao ICM-20948...\r\n");
   icm20948_init();
+  printf("ICM-20948 OK!\r\n");
 
   /* ===== KHỞI TẠO AK09916 (mag bên trong ICM) ===== */
-  /* ak09916_init() tự: reset I2C master + enable + set clock
-   *   + soft reset AK09916 + chọn mode 100Hz
-   *   Nếu không tìm thấy AK09916 → while(!ak09916_who_am_i()) sẽ treo. */
+  printf("Khoi tao AK09916...\r\n");
   ak09916_init();
+  printf("AK09916 OK!\r\n");
 
   HAL_Delay(1000);   /* đợi cảm biến ổn định sau init */
 
   /* ===== HIỆU CHUẨN MAG (xoay board 360° trong 20s) ===== */
+  printf("\r\n===== HIEU CHUAN MAG =====\r\n");
+  printf("Xoay board 360 do (moi huong) trong 20 giay...\r\n");
   ICM_CalibrateMag();
+  printf("Hieu chuan xong!\r\n");
+  printf("Bat dau doc du lieu...\r\n\r\n");
 
   uint32_t last_tick = HAL_GetTick();
 
@@ -138,7 +152,7 @@ int main(void)
       icm20948_accel_read_g(&a);
       ax = a.x;
       ay = a.y;
-      az = a.z;
+      az = -a.z;
 
       /* --- Đọc GYRO (±500 dps) → dps --- */
       icm20948_gyro_read_dps(&g);
@@ -157,7 +171,13 @@ int main(void)
       }
 
       UpdateYaw(dt);
-      UpdateDebugVariables();
+
+      /* ===== IN DEBUG QUA USART2 ===== */
+      printf("A:%7.3f,%7.3f,%7.3f | G:%7.2f,%7.2f,%7.2f | M:%7.2f,%7.2f,%7.2f | R:%6.2f P:%6.2f Y:%6.2f\r\n",
+             ax, ay, az,
+             gx, gy, gz,
+             mx, my, mz,
+             roll, pitch, yaw);
     }
 
   /* USER CODE END 3 */
@@ -239,6 +259,39 @@ static void MX_SPI2_Init(void)
 }
 
 /**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -265,17 +318,27 @@ static void MX_DMA_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
 
-  __HAL_RCC_GPIOC_CLK_ENABLE();
+  /* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /* --- Cấu hình chân CS cho ICM-20948 (PA8, output PP, pull-up) --- */
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(ICM_CS_GPIO_Port, ICM_CS_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : ICM_CS_Pin */
   GPIO_InitStruct.Pin = ICM_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(ICM_CS_GPIO_Port, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -289,7 +352,6 @@ static void MX_GPIO_Init(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)
   {
@@ -307,8 +369,6 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
