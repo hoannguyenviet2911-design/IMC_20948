@@ -18,14 +18,9 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 #include "icm20948.h"
 #include "mag_ak09916.h"
 #include "yaw_fusion.h"
-#include "stationary.h"
-#include "led_direction.h"
 #include "debug_vars.h"
 /* USER CODE END Includes */
 
@@ -101,16 +96,18 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   /* ===== KHỞI TẠO ICM-20948 ===== */
-  if (ICM_Init() != 0xEA) {
-    while (1) {
-      HAL_GPIO_TogglePin(NAM_GPIO_Port, NAM_Pin);
-      HAL_Delay(100);
-    }
-  }
+  /* icm20948_init() đã bao gồm: who_am_i + reset + wakeup + clock source
+   *   + LPF + ODR + calib gyro (HW) + chọn FSR (đã sửa về 500dps/4g)
+   *   Nếu không tìm thấy chip → hàm while(!icm20948_who_am_i()) sẽ treo. */
+  icm20948_init();
 
-  /* ===== HIỆU CHUẨN GYRO (giữ yên board ~1.5s) ===== */
-  ICM_CalibrateGyro();
-  HAL_Delay(1000);
+  /* ===== KHỞI TẠO AK09916 (mag bên trong ICM) ===== */
+  /* ak09916_init() tự: reset I2C master + enable + set clock
+   *   + soft reset AK09916 + chọn mode 100Hz
+   *   Nếu không tìm thấy AK09916 → while(!ak09916_who_am_i()) sẽ treo. */
+  ak09916_init();
+
+  HAL_Delay(1000);   /* đợi cảm biến ổn định sau init */
 
   /* ===== HIỆU CHUẨN MAG (xoay board 360° trong 20s) ===== */
   ICM_CalibrateMag();
@@ -135,11 +132,32 @@ int main(void)
       if (dt > 0.05f) dt = 0.05f;
       last_tick = now;
 
-      ICM_Read9Axis();
-      UpdateStationaryState();
+      axises a, g, m;
+
+      /* --- Đọc ACCEL (±4g) → g --- */
+      icm20948_accel_read_g(&a);
+      ax = a.x;
+      ay = a.y;
+      az = a.z;
+
+      /* --- Đọc GYRO (±500 dps) → dps --- */
+      icm20948_gyro_read_dps(&g);
+      gx = g.x;
+      gy = g.y;
+      gz = g.z;
+
+      /* --- Đọc MAG → µT → hoán vị trục → hiệu chuẩn --- */
+      if (ak09916_mag_read_uT(&m))
+      {
+        /* Hoán vị trục — điều chỉnh sau khi test thực tế */
+        float ux =  (float)m.y;
+        float uy =  (float)m.x;
+        float uz = -(float)m.z;
+        Mag_SetCalibrated(ux, uy, uz);
+      }
+
       UpdateYaw(dt);
       UpdateDebugVariables();
-      LED_Update_Direction();
     }
 
   /* USER CODE END 3 */
@@ -251,40 +269,6 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-
-  HAL_GPIO_WritePin(BAC_GPIO_Port,  BAC_Pin,  GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(DONG_GPIO_Port, DONG_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(NAM_GPIO_Port,  NAM_Pin,  GPIO_PIN_SET);
-  HAL_GPIO_WritePin(TAY_GPIO_Port,  TAY_Pin,  GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(ICM_CS_GPIO_Port, ICM_CS_Pin, GPIO_PIN_RESET);
-
-  /* --- Cấu hình LED BẮC (PB11, output PP) --- */
-  GPIO_InitStruct.Pin = BAC_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(BAC_GPIO_Port, &GPIO_InitStruct);
-
-  /* --- Cấu hình LED ĐÔNG (PA5, output PP) --- */
-  GPIO_InitStruct.Pin = DONG_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(DONG_GPIO_Port, &GPIO_InitStruct);
-
-  /* --- Cấu hình LED NAM (PC13, output PP) --- */
-  GPIO_InitStruct.Pin = NAM_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(NAM_GPIO_Port, &GPIO_InitStruct);
-
-  /* --- Cấu hình LED TÂY (PB8, output PP) --- */
-  GPIO_InitStruct.Pin = TAY_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(TAY_GPIO_Port, &GPIO_InitStruct);
 
   /* --- Cấu hình chân CS cho ICM-20948 (PA8, output PP, pull-up) --- */
   GPIO_InitStruct.Pin = ICM_CS_Pin;

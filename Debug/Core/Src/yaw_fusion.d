@@ -22,8 +22,8 @@ Core/Src/yaw_fusion.o: ../Core/Src/yaw_fusion.c ../Core/Inc/yaw_fusion.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash_ex.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_spi.h \
- ../Core/Inc/icm20948.h ../Core/Inc/mag_ak09916.h ../Core/Inc/icm20948.h \
- ../Core/Inc/stationary.h
+ ../Core/Inc/icm20948.h ../Core/Inc/mag_ak09916.h \
+ ../Core/Inc/Madgwick_filter.h
 ../Core/Inc/yaw_fusion.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h:
@@ -51,5 +51,4 @@ Core/Src/yaw_fusion.o: ../Core/Src/yaw_fusion.c ../Core/Inc/yaw_fusion.h \
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_spi.h:
 ../Core/Inc/icm20948.h:
 ../Core/Inc/mag_ak09916.h:
-../Core/Inc/icm20948.h:
-../Core/Inc/stationary.h:
+../Core/Inc/Madgwick_filter.h:

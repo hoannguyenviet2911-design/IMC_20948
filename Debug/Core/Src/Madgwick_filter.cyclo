@@ -1,0 +1,3 @@
+../Core/Src/Madgwick_filter.c:10:6:MadgwickAHRSupdate	7
+../Core/Src/Madgwick_filter.c:105:6:MadgwickAHRSupdateIMU	4
+../Core/Src/Madgwick_filter.c:158:7:invSqrt	3

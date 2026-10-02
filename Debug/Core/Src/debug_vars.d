@@ -22,8 +22,8 @@ Core/Src/debug_vars.o: ../Core/Src/debug_vars.c ../Core/Inc/debug_vars.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash_ex.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_spi.h \
- ../Core/Inc/icm20948.h ../Core/Inc/mag_ak09916.h ../Core/Inc/icm20948.h \
- ../Core/Inc/yaw_fusion.h ../Core/Inc/stationary.h
+ ../Core/Inc/icm20948.h ../Core/Inc/mag_ak09916.h \
+ ../Core/Inc/yaw_fusion.h
 ../Core/Inc/debug_vars.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h:
@@ -51,6 +51,4 @@ Core/Src/debug_vars.o: ../Core/Src/debug_vars.c ../Core/Inc/debug_vars.h \
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_spi.h:
 ../Core/Inc/icm20948.h:
 ../Core/Inc/mag_ak09916.h:
-../Core/Inc/icm20948.h:
 ../Core/Inc/yaw_fusion.h:
-../Core/Inc/stationary.h:

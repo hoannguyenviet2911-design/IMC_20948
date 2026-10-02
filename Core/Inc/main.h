@@ -49,12 +49,12 @@ extern "C" {
 
 /* ===== CONFIG YAW FUSION ===== */
 #define RAD_TO_DEG              57.29577951308232f
-#define YAW_ALPHA               0.98f
+
 
 /* ===== OFFSET YAW ===== */
-#define MAG_DECLINATION_DEG     -3.0f
-#define MOUNTING_OFFSET_DEG     -73.0f
-#define TOTAL_YAW_OFFSET        (MAG_DECLINATION_DEG + MOUNTING_OFFSET_DEG)
+/* ===== OFFSET YAW =====*/
+#define YAW_OFFSET_DEG          0.0f
+#define TOTAL_YAW_OFFSET        YAW_OFFSET_DEG
 
 /* ===== DEBUG: CẮT 2 SỐ THẬP PHÂN (KHÔNG LÀM TRÒN) ===== */
 #define TRUNC2(x)   ((float)((int32_t)((x) * 100.0f)) / 100.0f)
@@ -77,17 +77,8 @@ void SystemClock_Config(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define NAM_Pin GPIO_PIN_13
-#define NAM_GPIO_Port GPIOC
-#define DONG_Pin GPIO_PIN_5
-#define DONG_GPIO_Port GPIOA
-#define BAC_Pin GPIO_PIN_11
-#define BAC_GPIO_Port GPIOB
 #define ICM_CS_Pin GPIO_PIN_8
 #define ICM_CS_GPIO_Port GPIOA
-#define TAY_Pin GPIO_PIN_8
-#define TAY_GPIO_Port GPIOB
-
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
