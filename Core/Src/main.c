@@ -45,6 +45,7 @@ int main(void)
   printf("\r\n===== USART2 OK, baud=115200 =====\r\n");
   HAL_Delay(200);
 
+  /* === 1. INIT ICM + AK === */
   printf("Khoi tao ICM-20948...\r\n");
   icm20948_init();
   printf("ICM-20948 OK!\r\n");
@@ -53,9 +54,8 @@ int main(void)
   ak09916_init();
   printf("AK09916 OK!\r\n");
 
+  /* === 2. HIỆU CHUẨN MAG === */
   HAL_Delay(1000);
-
-  /* ===== HIỆU CHUẨN MAG — BẮT BUỘC cho MARG ===== */
   printf("\r\n===== HIEU CHUAN MAG =====\r\n");
   printf("Xoay board 360 do (moi huong) trong 20 giay...\r\n");
   ICM_CalibrateMag();
@@ -82,36 +82,43 @@ int main(void)
 
       axises a, g, m;
 
-      /* --- ACCEL: giữ nguyên frame ICM --- */
+      /* --- ACCEL --- */
       icm20948_accel_read_g(&a);
       ax = a.x;
       ay = -a.y;
       az = -a.z;
 
-      /* --- GYRO: cùng frame với accel --- */
+      /* --- GYRO: trừ bias cố định + cùng frame với accel --- */
       icm20948_gyro_read_dps(&g);
-      gx = g.x;
-      gy = -g.y;
-      gz = -g.z;
+      gx =  (g.x - gx_bias);
+      gy = -(g.y - gy_bias);
+      gz = -(g.z - gz_bias);
 
       /* --- MAG: remap AK09916 → ICM body frame, rồi hiệu chuẩn --- */
-      if (ak09916_mag_read_uT(&m))
+      bool mag_ok = ak09916_mag_read_uT(&m);
+      if (mag_ok)
       {
           float ux =  -(float)m.y;
           float uy =  -(float)m.x;
           float uz =  -(float)m.z;
-
           Mag_SetCalibrated(ux, uy, uz);
       }
 
       UpdateYaw(dt);
 
       /* ===== IN DEBUG QUA USART2 ===== */
-      printf("A:%7.3f,%7.3f,%7.3f | G:%7.2f,%7.2f,%7.2f | M:%7.2f,%7.2f,%7.2f | R:%6.2f P:%6.2f Y:%6.2f\r\n",
-             ax, ay, az,
-             gx, gy, gz,
-             mx, my, mz,
-             roll, pitch, yaw);
+      if (mag_ok) {
+          printf("A:%7.3f,%7.3f,%7.3f | G:%7.2f,%7.2f,%7.2f | M:%7.2f,%7.2f,%7.2f (OK) | R:%6.2f P:%6.2f Y:%6.2f\r\n",
+                 ax, ay, az,
+                 gx, gy, gz,
+                 mx, my, mz,
+                 roll, pitch, yaw);
+      } else {
+          printf("A:%7.3f,%7.3f,%7.3f | G:%7.2f,%7.2f,%7.2f | M: --- LOI GIAO TIEP --- | R:%6.2f P:%6.2f Y:%6.2f\r\n",
+                 ax, ay, az,
+                 gx, gy, gz,
+                 roll, pitch, yaw);
+      }
     }
     /* USER CODE END 3 */
   }
@@ -126,9 +133,6 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -138,8 +142,6 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
@@ -160,15 +162,11 @@ void SystemClock_Config(void)
   */
 static void MX_SPI2_Init(void)
 {
-
   /* USER CODE BEGIN SPI2_Init 0 */
-
   /* USER CODE END SPI2_Init 0 */
-
   /* USER CODE BEGIN SPI2_Init 1 */
-
   /* USER CODE END SPI2_Init 1 */
-  /* SPI2 parameter configuration*/
+
   hspi2.Instance = SPI2;
   hspi2.Init.Mode = SPI_MODE_MASTER;
   hspi2.Init.Direction = SPI_DIRECTION_2LINES;
@@ -186,9 +184,7 @@ static void MX_SPI2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN SPI2_Init 2 */
-
   /* USER CODE END SPI2_Init 2 */
-
 }
 
 /**
@@ -198,14 +194,11 @@ static void MX_SPI2_Init(void)
   */
 static void MX_USART2_UART_Init(void)
 {
-
   /* USER CODE BEGIN USART2_Init 0 */
-
   /* USER CODE END USART2_Init 0 */
-
   /* USER CODE BEGIN USART2_Init 1 */
-
   /* USER CODE END USART2_Init 1 */
+
   huart2.Instance = USART2;
   huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
@@ -219,9 +212,7 @@ static void MX_USART2_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART2_Init 2 */
-
   /* USER CODE END USART2_Init 2 */
-
 }
 
 /**
@@ -229,18 +220,13 @@ static void MX_USART2_UART_Init(void)
   */
 static void MX_DMA_Init(void)
 {
-
-  /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
 
-  /* DMA interrupt init */
-  /* DMA1_Channel4_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
-  /* DMA1_Channel5_IRQn interrupt configuration */
+
   HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
-
 }
 
 /**
@@ -252,17 +238,13 @@ static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN MX_GPIO_Init_1 */
-
   /* USER CODE END MX_GPIO_Init_1 */
 
-  /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(ICM_CS_GPIO_Port, ICM_CS_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : ICM_CS_Pin */
   GPIO_InitStruct.Pin = ICM_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
@@ -270,12 +252,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(ICM_CS_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
-
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
-
 /* USER CODE END 4 */
 
 /**
@@ -291,14 +271,8 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
+
 #ifdef USE_FULL_ASSERT
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */

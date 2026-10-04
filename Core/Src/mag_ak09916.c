@@ -4,7 +4,11 @@
 /* ===== Định nghĩa biến toàn cục ===== */
 volatile float ax, ay, az;
 volatile float gx, gy, gz;
-volatile float gx_bias = 0.0f, gy_bias = 0.0f, gz_bias = 0.0f;
+
+/* ===== GYRO BIAS CỐ ĐỊNH (lấy từ #define trong .h) ===== */
+volatile float gx_bias = GYRO_BIAS_X;
+volatile float gy_bias = GYRO_BIAS_Y;
+volatile float gz_bias = GYRO_BIAS_Z;
 
 volatile float mx, my, mz;
 

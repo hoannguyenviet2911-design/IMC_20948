@@ -1,2 +1,2 @@
-../Core/Src/mag_ak09916.c:15:6:Mag_SetCalibrated	24	static
-../Core/Src/mag_ak09916.c:23:6:ICM_CalibrateMag	80	static
+../Core/Src/mag_ak09916.c:19:6:Mag_SetCalibrated	24	static
+../Core/Src/mag_ak09916.c:27:6:ICM_CalibrateMag	80	static

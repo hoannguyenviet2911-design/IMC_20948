@@ -38,7 +38,7 @@ void CalculateYaw(void)
 void UpdateYaw(float dt)
 {
     /* Deadband nhỏ để chống trôi yaw khi đứng yên */
-    const float GYRO_DEADBAND = 0.5f;   /* dps */
+    const float GYRO_DEADBAND = 0.2f;   /* dps */
     float gxd = (fabsf(gx) < GYRO_DEADBAND) ? 0.0f : gx;
     float gyd = (fabsf(gy) < GYRO_DEADBAND) ? 0.0f : gy;
     float gzd = (fabsf(gz) < GYRO_DEADBAND) ? 0.0f : gz;

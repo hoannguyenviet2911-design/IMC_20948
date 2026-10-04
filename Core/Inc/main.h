@@ -51,7 +51,7 @@ extern "C" {
 #define RAD_TO_DEG              57.29577951308232f
 
 /* ===== OFFSET YAW ===== */
-#define YAW_OFFSET_DEG          0.0f
+#define YAW_OFFSET_DEG          -5.0f
 #define TOTAL_YAW_OFFSET        YAW_OFFSET_DEG
 
 /* USER CODE END EM */

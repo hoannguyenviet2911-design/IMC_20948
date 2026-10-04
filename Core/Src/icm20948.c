@@ -40,8 +40,8 @@ void icm20948_init()
 
     icm20948_gyro_sample_rate_divider(0);
     icm20948_accel_sample_rate_divider(0);
-
-    icm20948_gyro_calibration();
+//
+//    icm20948_gyro_calibration();
 //    icm20948_accel_calibration();
 
     icm20948_gyro_full_scale_select(_500dps);   /* đổi từ _2000dps */
@@ -61,16 +61,15 @@ void ak09916_start_continuous_read(void)
 
 void ak09916_init()
 {
-    icm20948_i2c_master_reset();
-    icm20948_i2c_master_enable();
-    icm20948_i2c_master_clk_frq(7);
+	icm20948_i2c_master_reset();
+	icm20948_i2c_master_enable();
+	icm20948_i2c_master_clk_frq(7);
 
-    while(!ak09916_who_am_i());
+	while(!ak09916_who_am_i());
 
-    ak09916_soft_reset();
-    ak09916_operation_mode_setting(continuous_measurement_100hz);
-
-    ak09916_start_continuous_read();
+	ak09916_soft_reset();
+	ak09916_operation_mode_setting(continuous_measurement_100hz);
+	ak09916_start_continuous_read();
 }
 
 void icm20948_gyro_read(axises* data)
